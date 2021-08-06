@@ -1,0 +1,2 @@
+# sql-basics
+Oracle sql
