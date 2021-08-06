@@ -1,0 +1,96 @@
+-- 210407
+-- 복습
+SELECT * FROM EMPLOYEES;
+
+-- 키 관계가 있기 때문에 ( 참조 무결성 조건 ) 삭제 되지 않는다
+DELETE FROM EMPLOYEES
+WHERE EMPLOYEE_ID = 100;
+
+-- MERGE
+-- 사본 테이블 생성
+CREATE TABLE EMPS_IT AS (SELECT * FROM EMPLOYEES WHERE 1 = 2);
+DESC EMPS_IT;
+
+-- INSERT DATE
+INSERT INTO EMPS_IT(EMPLOYEE_ID, LAST_NAME, EMAIL, HIRE_dATE, JOB_ID)
+VALUES (103, 'Gildong', 'KKK', SYSDATE, 'IT_PROG');
+
+SELECT * FROM EMPS_IT;
+
+--MERGE INTO /*타켓 테이블 엘리어스 */
+--USING (/*병합시킬 테이블의 데이터*/)
+--ON (/*두 테이블의 연결 조건*/)
+--WHEN MATCH THEN (/*일치할 경우 수행할 작업*/)
+--WHEN NOT MATCH THEN (/*일치하지 않을 경우 수행할 작업*/)
+
+MERGE INTO EMPS_IT a
+USING (SELECT EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, MANAGER_ID, DEPARTMENT_ID, JOB_ID, HIRE_DATE
+       FROM EMPLOYEES
+       WHERE JOB_ID = 'IT_PROG') b
+ON (a.EMPLOYEE_ID = b.EMPLOYEE_ID)
+WHEN MATCHED THEN
+    UPDATE SET 
+        a.FIRST_NAME = b.FIRST_NAME,
+        a.LAST_NAME = b.LAST_NAME,
+        a.EMAIL = b.EMAIL,
+        a.PHONE_NUMBER = b.PHONE_NUMBER,
+        a.MANAGER_ID = b.MANAGER_ID,
+        a.DEPARTMENT_ID = b.DEPARTMENT_ID,
+        a.JOB_ID = b.JOB_ID,
+        a.HIRE_DATE = b.HIRE_DATE
+WHEN NOT MATCHED THEN
+    INSERT (EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, MANAGER_ID, DEPARTMENT_ID, JOB_ID, HIRE_DATE)
+    VALUES 
+        (b.EMPLOYEE_ID,
+         b.FIRST_NAME,
+         b.LAST_NAME,
+         b.EMAIL,
+         b.PHONE_NUMBER,
+         b.MANAGER_ID,
+         b.DEPARTMENT_ID,
+         b.JOB_ID,
+         b.HIRE_DATE);
+         
+-- 실습
+INSERT INTO EMPS_IT (EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID)
+VALUES (102, '홍', '길동', 'HONG', '01/04/06', 'AD_VP');
+
+INSERT INTO EMPS_IT (EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID)
+VALUES (101, '김', '니나', 'KIM', '20/03/04', 'AD_VP');
+
+SELECT * FROM EMPS_IT;
+
+-- EMPLOYEES 테이블이 매번 수정되는 테이블이라고 가정하고 주마다 EMPS_IT를 업데이트 시킨다
+-- 기존의 데이터는 EMAIL, PHONE_NUMBER, SALARY, COMMISSION_PCT, MANAGER_ID, DEPARTMENT_ID는 업데이트되도록 처리
+-- 새로 유입된 데이터는 모든 컬럼을 그대로 추가
+MERGE INTO EMPS_IT A
+USING (SELECT * FROM EMPLOYEES) B
+ON (A.EMPLOYEE_ID = B.EMPLOYEE_ID)
+WHEN MATCHED THEN
+    UPDATE SET
+        A.EMAIL = B.EMAIL,
+        A.PHONE_NUMBER = B.PHONE_NUMBER,
+        A.SALARY = B.SALARY,
+        A.COMMISSION_PCT = B.COMMISSION_PCT,
+        A.MANAGER_ID = B.MANAGER_ID,
+        A.DEPARTMENT_ID = B.DEPARTMENT_ID
+WHEN NOT MATCHED THEN
+    INSERT VALUES (B.EMPLOYEE_ID,
+                   B.FIRST_NAME,
+                   B.LAST_NAME,
+                   B.EMAIL,
+                   B.PHONE_NUMBER,
+                   B.HIRE_DATE,
+                   B.JOB_ID,
+                   B.SALARY,
+                   B.COMMISSION_PCT,
+                   B.MANAGER_ID,
+                   B.DEPARTMENT_ID);
+
+SELECT * FROM EMPS;
+
+-- CTAS (사본 테이블)
+-- PK, FK는 복사하지 않는다. (NULL의 여부만 복사)
+CREATE TABLE DEPTS AS (SELECT * FROM DEPARTMENTS /* WHERE 1=2 */);
+
+SELECT * FROM DEPTS;

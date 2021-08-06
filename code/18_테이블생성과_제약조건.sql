@@ -1,0 +1,183 @@
+-- DDL문 (데이터베이스 정의문)
+-- 트랜잭션을 적용할 수 없다.
+
+-- 오라클은 테이블명의 대소문자를 가리지 않는다
+CREATE TABLE DEPT2(
+    DEPT_NO NUMBER(2,0), -- 2자리수, 소수점은 허용X
+    DEPT_NAME VARCHAR2(14), -- 14byte, 영어 14글자, 한글 7글자
+    LOCA VARCHAR2(10),
+    DEPT_DATE DATE,
+    DEPT_BONUS NUMBER(10), -- 10자리 수, 소수점 x
+    DEL_YN CHAR(1) -- 고정문자
+);
+
+DESC DEPT2;
+
+INSERT INTO DEPT2 VALUES (99, '영업', '서울', SYSDATE, 1000000000, 'Y');
+
+-- 테이블 열 추가, 수정, 이름 변경, 삭제
+-- 열 추가
+ALTER TABLE DEPT2 ADD (DEPT_COUNT NUMBER(3));
+
+-- 열 이름 변경
+ALTER TABLE DEPT2 RENAME COLUMN DEPT_COUNT TO EMP_COUNT;
+
+-- 열 수정(타입 수정)
+ALTER TABLE DEPT2 MODIFY (EMP_COUNT NUMBER(10));
+
+-- 열 삭제
+ALTER TABLE DEPT2 DROP COLUMN EMP_COUNT;
+
+DESC DEPT2;
+
+-- 테이블 삭제
+DROP TABLE DEPT2;
+DROP TABLE EMPLOYEES /*CASCADE CONSTRAINTS 제약조건명*/; -- PK로 사용 중인 FK가 있기 때문에 삭제가 안된다.
+
+CREATE TABLE DEPT2(
+    DEPT_NO NUMBER(2,0), -- 2자리수, 소수점은 허용X
+    DEPT_NAME VARCHAR2(14), -- 14byte, 영어 14글자, 한글 7글자
+    LOCA VARCHAR2(10),
+    DEPT_DATE DATE,
+    DEPT_BONUS NUMBER(10), -- 10자리 수, 소수점 x
+    DEL_YN CHAR(1) -- 고정문자
+);
+
+INSERT INTO DEPT2 VALUES (99, '영업', '서울', SYSDATE, 1000000000, 'Y');
+SELECT * FROM DEPT2;
+
+TRUNCATE TABLE DEPT2; -- 데이터 복구 안됨, 테이블 구조는 남겨두고 데이터 영구 삭제
+
+-------- 테이블 생성과 제약 조건 ----------
+-- PRIMARY KEY : 테이블의 고유 키, 중복 X, NULL 허용X
+-- UNIQUE : 고유키는 아니지만 중복 X, 이 컬럼은 유일한 값을 갖게 한다 할 때 사용
+-- NOT NULL : NULL 값 허용X
+-- FOREIGN KEY : 참조 테이블의 PRIMARY KEY를 저장하는 컬럼, 참조 테이블의 PK에 없다면 등록할 수 없다, 단 NULL은 허용한다
+-- CHECK : 정의된 형식(특정 형식)만 저장되도록 허용한다
+
+DROP TABLE DEPT2;
+
+-- 테이블 만들기 + 열 레벨 제약조건
+CREATE TABLE DEPT2 (
+    DEPT_NO NUMBER(2)       CONSTRAINT DEPT2_DEPT_NO_PK PRIMARY KEY, /*제약조건이름 : 테이블명_컬럼명_PK*/
+    DEPT_NAME VARCHAR2(15)  NOT NULL,
+    LOCA NUMBER(4)          CONSTRAINT DEPT2_LOCA_LOCID_FK REFERENCES LOCATIONS(LOCATION_ID), /*제약조건이름 : 테이블명_컬럼명_참조하는테이블명_FK*/
+    DEPT_DATE DATE          DEFAULT SYSDATE, -- 아무것도 입력 안되면 자동으로 DEFAULT 값이 저장된다
+    DEPT_BONUS NUMBER(10),
+    DEPT_PHONE VARCHAR2(20) NOT NULL CONSTRAINT DEPT2_DEPT_PHONE_UK UNIQUE,
+    DEPT_GENDER CHAR(1)     CONSTRAINT DEPT2_DEPT_GENDER_CK CHECK(DEPT_GENDER IN ('M', 'F'))
+);
+
+-- 테이블 만들기 + 열 레벨 제약조건 + 제약 조건 이름 없이
+CREATE TABLE DEPT2 (
+    DEPT_NO NUMBER(2)       PRIMARY KEY, /*제약조건이름 : 테이블명_컬럼명_PK*/
+    DEPT_NAME VARCHAR2(15)  NOT NULL,
+    LOCA NUMBER(4)          REFERENCES LOCATIONS(LOCATION_ID), /*제약조건이름 : 테이블명_컬럼명_참조하는테이블명_FK*/
+    DEPT_DATE DATE          DEFAULT SYSDATE, -- 아무것도 입력 안되면 자동으로 DEFAULT 값이 저장된다
+    DEPT_BONUS NUMBER(10),
+    DEPT_PHONE VARCHAR2(20) NOT NULL UNIQUE,
+    DEPT_GENDER CHAR(1)     CHECK(DEPT_GENDER IN ('M', 'F'))
+);
+
+-- 테이블 만들기 + 테이블 레벨 제약조건, NOT NULL만 포함시킨다
+CREATE TABLE DEPT2 (
+    DEPT_NO NUMBER(2),
+    DEPT_NAME VARCHAR2(15)  NOT NULL,
+    LOCA NUMBER(4),
+    DEPT_DATE DATE DEFAULT SYSDATE, -- 아무것도 입력 안되면 자동으로 DEFAULT 값이 저장된다
+    DEPT_BONUS NUMBER(10),
+    DEPT_PHONE VARCHAR2(20) NOT NULL,
+    DEPT_GENDER CHAR(1),
+    -- 슈퍼키는 테이블 레벨로만 작성 가능하다
+    CONSTRAINT DEPT2_DEPT_NO_PK PRIMARY KEY(DEPT_NO /*, DEPT_NAME */),
+    CONSTRAINT DEPT2_LOCA_LOCID_FK FOREIGN KEY (LOCA) REFERENCES LOCATIONS(LOCATION_ID),
+    CONSTRAINT DEPT2_DEPT_PHONE_UK UNIQUE(DEPT_PHONE),
+    CONSTRAINT DEPT2_DEPT_GENDER_CK CHECK(DEPT_GENDER IN ('M', 'F'))
+);
+
+
+-- 210408
+SELECT * FROM EMPLOYEES WHERE EMPLOYEE_ID = 100;
+
+-- 개체 무결성 제약 조건 위반 ( NULL고 중복을 허용하지 않는다는 제약 )
+INSERT INTO EMPLOYEES(EMPLOYEE_ID, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID)
+VALUES (100, 'TEST', 'TEST', SYSDATE, 'TEST');
+
+-- 참조 무결성 제약 조건 위반 ( 참조 테이블에 PK가 존재해야 FK에 들어갈 수 있다는 제약)
+INSERT INTO EMPLOYEES(EMPLOYEE_ID, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID, DEPARTMENT_ID)
+VALUES (501, 'TEST', 'TEST', SYSDATE, 'TEST', 5);
+
+-- 도메인 무결성 제약 조건 위반 ( CHECK 제약 조건 위반, 들어가야할 조건을 잘못 집어넣었다)
+INSERT INTO EMPLOYEES (EMPLOYEE_ID, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID, SALARY)
+VALUES (501, 'TEST', 'TEST', SYSDATE, 'TEST', -10);
+
+-- 제약 조건 추가, 삭제
+DROP TABLE DEPT2;
+
+CREATE TABLE DEPT2 (
+    DEPT_NO NUMBER(2),
+    DEPT_NAME VARCHAR2(15),
+    LOCA NUMBER(4),
+    DEPT_DATE DATE DEFAULT SYSDATE, -- 아무것도 입력 안되면 자동으로 DEFAULT 값이 저장된다
+    DEPT_BONUS NUMBER(10),
+    DEPT_PHONE VARCHAR2(20),
+    DEPT_GENDER CHAR(1)
+);
+
+-- 테이블 레벨 제약 조건과 똑같다
+-- PK 추가
+ALTER TABLE DEPT2 ADD CONSTRAINT DEPT2_DEPT_NO_PK PRIMARY KEY (DEPT_NO);
+-- FK 추가
+ALTER TABLE DEPT2 ADD CONSTRAINT DEPT2_DEPT_NO_FK FOREIGN KEY (LOCA) REFERENCES LOCATIONS(LOCATION_ID);
+-- CHECK 추가
+ALTER TABLE DEPT2 ADD CONSTRAINT DEPT2_DEPT_GENDER_CK CHECK (DEPT_GENDER IN ('M', 'F'));
+-- UNIQUE 추가
+ALTER TABLE DEPT2 ADD CONSTRAINT DEPT2_DEPT_PHONE_UK UNIQUE (DEPT_PHONE);
+-- NOT NULL 추가( MODIFY문으로 추가) - 일반적으로 열레벨로 정의
+ALTER TABLE DEPT2 MODIFY DEPT_PHONE VARCHAR(20) NOT NULL;
+
+-- 제약 조건 삭제
+-- 제약 조건을 먼저 확인을 해야 함
+SELECT *
+FROM USER_CONSTRAINTS
+WHERE TABLE_NAME = 'DEPT2';
+
+-- 진짜 삭제(이름으로 삭제)
+ALTER TABLE DEPT2 DROP CONSTRAINT DEPT2_DEPT_NO_PK;
+
+DROP TABLE DEPT2; -- 제약조건도 다 같이 지워짐
+
+-- 연습 문제
+--문제 1. 다음과 같은 테이블을 생성하고 데이터를 insert하세요 (커밋)
+--조건) M_NAME 는 가변문자형, 널값을 허용하지 않음
+--조건) M_NUM 은 숫자형, 이름(mem_memnum_pk) primary key
+--조건) REG_DATE 는 날짜형, 널값을 허용하지 않음, 이름:(mem_regdate_uk) UNIQUE키
+--조건) GENDER 가변문자형
+--조건) LOCA 숫자형, 이름:(mem_loca_loc_locid_fk) foreign key ? 참조 locations테이블(location_id)
+
+CREATE TABLE MEM (
+    M_NAME VARCHAR2(5)  NOT NULL,
+    M_NUM NUMBER(3)     CONSTRAINT MEM_MEMNUM_PK PRIMARY KEY,
+    REG_DATE DATE       NOT NULL CONSTRAINT MEM_REGDATE_UK UNIQUE,
+    GENDER VARCHAR2(1)  CHECK(GENDER IN ('M', 'F')),
+    LOCA NUMBER(5)      CONSTRAINT MEM_LOCA_LOC_LOCID_FK REFERENCES LOCATIONS(LOCATION_ID)
+);
+
+DESC MEM;
+
+SELECT * FROM USER_CONSTRAINTS WHERE TABLE_NAME = 'MEM';
+
+INSERT INTO MEM VALUES('AAA', 1, TO_DATE('2018-07-01', 'YYYY-MM-DD'), 'M', 1800);
+INSERT INTO MEM VALUES('BBB', 2, TO_DATE('2018-07-02', 'YYYY-MM-DD'), 'F', 1900);
+INSERT INTO MEM VALUES('CCC', 3, TO_DATE('2018-07-03', 'YYYY-MM-DD'), 'M', 2000);
+INSERT INTO MEM VALUES('DDD', 4, SYSDATE, 'M', 2000);
+
+COMMIT;
+
+--문제 2.
+--MEMBERS테이블과 LOCATIONS테이블을 INNER JOIN 하고 m_name, m_mum, street_address, location_id
+--컬럼만 조회
+--m_num기준으로 오름차순 조회
+SELECT M.M_NUM, M.M_NAME, M.LOCA, L.STREET_ADDRESS
+FROM MEM M INNER JOIN LOCATIONS L ON M.LOCA = L.LOCATION_ID
+ORDER BY M_NUM ASC;

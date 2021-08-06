@@ -1,0 +1,89 @@
+-- VIEW 
+-- 제한적인 자료만 보기 위해서 사용하는 가상의 테이블
+-- 물리적 테이블 (원본 테이블)을 이용한 가상 테이블이기 때문에 필요한 데이터만 저장해둬서 조회에 이점을 가진다
+-- 뷰를 이용해 데이터를 접근하면 원본데이터는 안전하게 보호할 수 있다
+-- 뷰는 계정에 생성권한이 있어야 만들 수 있다.
+
+SELECT * FROM USER_ROLE_PRIVS;
+
+-- 단순 뷰 (하나의 테이블에서 필요한 데이터만 추출한 뷰)
+CREATE /* OR REPLACE */ VIEW VIEW_EMP
+AS (SELECT EMPLOYEE_ID,
+           FIRST_NAME || ' ' || LAST_NAME AS NAME,
+           JOB_ID,
+           SALARY
+    FROM EMPLOYEES
+    WHERE DEPARTMENT_ID = 60);
+    
+-- 조회는 테이블 조회 구문이랑 똑같다
+SELECT *
+FROM VIEW_EMP;
+
+-- 복합 뷰 ( 여러 테이블을 조인해서 필요한 데이터만 저장한 뷰 )
+CREATE OR REPLACE VIEW VIEW_EMP_DEPT_JOB
+AS (SELECT E.EMPLOYEE_ID,
+           FIRST_NAME || ' ' || LAST_NAME AS NAME,
+           E.SALARY,
+           D.DEPARTMENT_NAME,
+           J.JOB_TITLE
+    FROM EMPLOYEES E JOIN DEPARTMENTS D ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+                     JOIN JOBS J ON E.JOB_ID = J.JOB_ID);
+                     
+SELECT * FROM VIEW_EMP_DEPT_JOB ORDER BY EMPLOYEE_ID;
+
+-- 뷰의 수정 (CREATE OR REPLACE VIEW ~)
+-- 동일한 이름으로 만들면 데이터가 변경된다
+CREATE OR REPLACE VIEW VIEW_EMP_DEPT_JOB
+AS (SELECT E.EMPLOYEE_ID,
+           FIRST_NAME || ' ' || LAST_NAME AS NAME,
+           E.HIRE_DATE,
+           E.SALARY,
+           D.DEPARTMENT_NAME,
+           J.JOB_TITLE
+    FROM EMPLOYEES E JOIN DEPARTMENTS D ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+                     JOIN JOBS J ON E.JOB_ID = J.JOB_ID);
+                     
+SELECT * FROM VIEW_EMP_DEPT_JOB;
+
+-- 뷰를 적절히 이용하면 데이터를 쉽게 조회할 수 있다
+SELECT JOB_TITLE, TRUNC(AVG(SALARY))
+FROM VIEW_EMP_DEPT_JOB
+GROUP BY JOB_TITLE;
+
+-- NAME과 같이 가상열을 갖고 있으면 새로운 값 삽입 불가
+SELECT * FROM VIEW_EMP;
+INSERT INTO VIEW_EMP VALUES(108, 'TEST', 'IT_PROG', 5000);
+-- LAST_NAME 같이 원본 테이블 컬럼의 속성이 NOT NULL인 경우 삽입 불가
+INSERT INTO VIEW_EMP(EMPLOYEE_ID, JOB_ID, SALARY) VALUES (108, 'IT_PROG', 5000);
+
+-- 복합뷰는 조인되어 만들어진 것이기 때문에 한번에 여러 테이블에 데이터를 추가, 수정할 수 없다
+SELECT * FROM VIEW_EMP_DEPT_JOB;
+INSERT INTO VIEW_EMP_DEPT_JOB(EMPLOYEE_ID, HIRE_DATE, SALARY, DEPARTMENT_NAME, JOB_TITLE)
+VALUES(300, SYSDATE, 8000, 'TEST', 'TEST');
+
+-- 뷰 삭제
+DROP VIEW VIEW_EMP_DEPT_JOB;
+
+-- WITH CHECK OPTION (조건절 컬럼의 수정을 막는 제약)
+CREATE OR REPLACE VIEW VIEW_EMP_TEST
+AS (SELECT EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, JOB_ID, DEPARTMENT_ID
+    FROM EMPLOYEES
+    WHERE DEPARTMENT_ID = 100)
+WITH CHECK OPTION CONSTRAINT VIEW_EMP_TEST_CK;
+
+-- DEPARTMENT_ID에 제약조건이 걸리고, 변경될 수 없다
+SELECT *
+FROM VIEW_EMP_TEST;
+
+UPDATE VIEW_EMP_TEST 
+SET DEPARTMENT_ID = 10
+WHERE EMPLOYEE_ID = 110;
+
+-- WITH READ ONLY (읽기 전용 뷰)
+CREATE OR REPLACE VIEW VIEW_EMP_TEST
+AS (SELECT EMPLOYEE_ID, 
+           FIRST_NAME || ' ' || LAST_NAME AS NAME
+    FROM EMPLOYEES)
+WITH READ ONLY;
+
+SELECT * FROM VIEW_EMP_TEST;

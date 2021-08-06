@@ -1,0 +1,22 @@
+-- 트래잭션
+-- 오토커밋 확인
+SHOW AUTOCOMMIT;
+
+-- 오토커밋 ON
+SET AUTOCOMMIT ON;
+-- 오토커밋 OFF
+SET AUTOCOMMIT OFF;
+
+SELECT * FROM DEPTS;
+
+DELETE FROM DEPTS WHERE DEPARTMENT_ID = 10; -- 트랜잭션 명령을 주지 않으면 가짜, 저장된 건 아님
+SAVEPOINT SV1; -- 첫번째 저장지점 생성
+
+DELETE FROM DEPTS WHERE DEPARTMENT_ID = 20;
+SAVEPOINT SV2;
+
+ROLLBACK TO SV1;
+
+ROLLBACK TO SV2;
+
+COMMIT; -- 테이블에 반영! (커밋 이후에는 어떤 방법을 쓰더라도 되돌릴 수 없음!)
